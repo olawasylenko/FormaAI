@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   sendEmailVerification,
   signInWithEmailAndPassword,
@@ -22,6 +22,15 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [unverified, setUnverified] = useState(false);
   const [resending, setResending] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const emailFromLink = params.get("email");
+
+    if (emailFromLink) {
+      setEmail(emailFromLink);
+    }
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -66,7 +75,7 @@ export default function LoginPage() {
       auth.languageCode = "pl";
 
       await sendEmailVerification(auth.currentUser, {
-        url: "https://forma-ai-alpha.vercel.app/login",
+        url: `https://forma-ai-alpha.vercel.app/login?email=${encodeURIComponent(email)}`,
         handleCodeInApp: false,
       });
 

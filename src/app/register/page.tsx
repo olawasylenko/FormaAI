@@ -60,7 +60,7 @@ export default function RegisterPage() {
       });
 
       await sendEmailVerification(result.user, {
-        url: "https://forma-ai-alpha.vercel.app/dashboard",
+        url: `https://forma-ai-alpha.vercel.app/login?email=${encodeURIComponent(email)}`,
         handleCodeInApp: false,
       });
 
