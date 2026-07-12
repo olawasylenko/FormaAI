@@ -9,6 +9,7 @@ import { auth } from "@/lib/firebase";
 import { NewModelWorkspace } from "@/components/NewModelWorkspace";
 import { Sidebar, type NavItemId, navItems } from "@/components/Sidebar";
 import { TopBar } from "@/components/TopBar";
+import { SettingsPanel } from "@/components/SettingsPanel";
 import LoginRequired from "@/components/auth/LoginRequired";
 
 function HomeTab({ user }: { user: User | null }) {
@@ -113,6 +114,10 @@ export function DashboardLayout() {
 
     if (activeTab === "new-model") {
       return <NewModelWorkspace />;
+    }
+
+    if (activeTab === "settings") {
+      return <SettingsPanel />;
     }
 
     return <PlaceholderTab title={activeLabel} />;

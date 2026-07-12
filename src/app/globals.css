@@ -57,3 +57,36 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
+
+.dark {
+  color-scheme: dark;
+}
+
+.dark body {
+  background: #181a15;
+  color: #f4f3ed;
+}
+
+.dark .bg-background {
+  background-color: #181a15 !important;
+}
+
+.dark .bg-white {
+  background-color: #24271f !important;
+}
+
+.dark .text-foreground {
+  color: #f4f3ed !important;
+}
+
+.dark .text-muted {
+  color: #b5b8ad !important;
+}
+
+.dark .border-border {
+  border-color: #41463a !important;
+}
+
+.dark .bg-primary-light {
+  background-color: #343a2a !important;
+}
