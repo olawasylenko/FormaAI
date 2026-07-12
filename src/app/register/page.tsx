@@ -5,11 +5,13 @@ import { useState } from "react";
 import {
   createUserWithEmailAndPassword,
   sendEmailVerification,
+  updateProfile,
 } from "firebase/auth";
 import { Eye, EyeOff, MailCheck } from "lucide-react";
 import { auth } from "@/lib/firebase";
 
 export default function RegisterPage() {
+  const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [repeatPassword, setRepeatPassword] = useState("");
@@ -23,8 +25,14 @@ export default function RegisterPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-
     setError("");
+
+    const trimmedName = displayName.trim();
+
+    if (trimmedName.length < 2) {
+      setError("Nazwa użytkownika musi mieć minimum 2 znaki.");
+      return;
+    }
 
     if (password !== repeatPassword) {
       setError("Hasła nie są takie same.");
@@ -47,8 +55,12 @@ export default function RegisterPage() {
         password
       );
 
+      await updateProfile(result.user, {
+        displayName: trimmedName,
+      });
+
       await sendEmailVerification(result.user, {
-        url: `${window.location.origin}/verify-email`,
+        url: "https://forma-ai-alpha.vercel.app/dashboard",
         handleCodeInApp: false,
       });
 
@@ -83,14 +95,14 @@ export default function RegisterPage() {
           <div className="mt-6 rounded-2xl bg-[#f7f5ef] p-5 text-left text-sm leading-6 text-[#5f6459]">
             <strong>Nie widzisz wiadomości?</strong>
             <br />
-            Sprawdź folder <strong>Spam</strong>, <strong>Oferty</strong> lub
-            <strong> Inne</strong>. Dostarczenie wiadomości może potrwać kilka
+            Sprawdź folder <strong>Spam</strong>, <strong>Oferty</strong> lub{" "}
+            <strong>Inne</strong>. Dostarczenie wiadomości może potrwać kilka
             minut.
           </div>
 
           <p className="mt-6 text-sm leading-6 text-[#6b7064]">
-            Po kliknięciu linku w wiadomości wrócisz do FormaAI i zostaniesz
-            automatycznie przeniesiony do aplikacji.
+            Po kliknięciu linku wrócisz do FormaAI i zostaniesz automatycznie
+            przeniesiony do aplikacji.
           </p>
 
           <Link
@@ -118,6 +130,22 @@ export default function RegisterPage() {
         </p>
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+          <div>
+            <label className="mb-2 block text-sm font-medium">
+              Nazwa użytkownika
+            </label>
+
+            <input
+              type="text"
+              required
+              maxLength={40}
+              autoComplete="name"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+                            className="w-full rounded-xl border border-[#d8d3c7] px-4 py-3 outline-none focus:border-[#6c7c50]"
+            />
+          </div>
+
           <div>
             <label className="mb-2 block text-sm font-medium">E-mail</label>
 
