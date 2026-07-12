@@ -90,3 +90,76 @@ body {
 .dark .bg-primary-light {
   background-color: #343a2a !important;
 }
+
+.settings-card {
+  background: #6c7c50;
+}
+
+.settings-card .text-foreground {
+  color: #ffffff !important;
+}
+
+.settings-card .text-muted {
+  color: #eef3df !important;
+}
+
+.settings-card .text-primary {
+  color: #eef3df !important;
+}
+
+.settings-card .bg-background {
+  background-color: #f7f5ef !important;
+}
+
+.settings-card input {
+  background-color: #f7f5ef !important;
+  color: #1f2416 !important;
+  border-color: #d8d3c7 !important;
+}
+
+.settings-card input::placeholder {
+  color: #7a806f !important;
+}
+
+.settings-card input:disabled {
+  color: #6b7064 !important;
+  opacity: 1 !important;
+}
+
+.settings-card label {
+  color: #ffffff !important;
+}
+
+.settings-card .hover\:bg-primary-light:hover {
+  background-color: #7b8b5d !important;
+}
+
+.dark .settings-card {
+  background: #24271f;
+}
+
+.dark .settings-card .text-foreground {
+  color: #f4f3ed !important;
+}
+
+.dark .settings-card .text-muted {
+  color: #b5b8ad !important;
+}
+
+.dark .settings-card .text-primary {
+  color: #d7dfc5 !important;
+}
+
+.dark .settings-card .bg-background {
+  background-color: #181a15 !important;
+}
+
+.dark .settings-card input {
+  background-color: #1d2019 !important;
+  color: #f4f3ed !important;
+  border-color: #41463a !important;
+}
+
+.dark .settings-card input:disabled {
+  color: #b5b8ad !important;
+}

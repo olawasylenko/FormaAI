@@ -224,7 +224,7 @@ export function SettingsPanel() {
         </p>
       </div>
 
-      <section className="rounded-3xl border border-border bg-white p-6 shadow-sm lg:p-8 dark:bg-[#24271f]">
+      <section className="settings-card rounded-3xl border border-border p-6 shadow-sm lg:p-8">
         <div className="flex items-center gap-3">
           <UserRound className="text-primary" />
           <div>
@@ -315,7 +315,7 @@ export function SettingsPanel() {
         </div>
       </section>
 
-      <section className="rounded-3xl border border-border bg-white p-6 shadow-sm lg:p-8 dark:bg-[#24271f]">
+      <section className="settings-card rounded-3xl border border-border p-6 shadow-sm lg:p-8">
         <div className="flex items-center gap-3">
           {darkMode ? (
             <Moon className="text-primary" />
@@ -358,7 +358,7 @@ export function SettingsPanel() {
         </div>
       </section>
 
-      <section className="rounded-3xl border border-border bg-white p-6 shadow-sm lg:p-8 dark:bg-[#24271f]">
+      <section className="settings-card rounded-3xl border border-border p-6 shadow-sm lg:p-8">
         <div className="flex items-center gap-3">
           <KeyRound className="text-primary" />
 
