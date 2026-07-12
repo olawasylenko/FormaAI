@@ -72,7 +72,7 @@ function PlaceholderTab({ title }: { title: string }) {
 }
 
 export function DashboardLayout() {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const [activeTab, setActiveTab] = useState<NavItemId>("home");
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
