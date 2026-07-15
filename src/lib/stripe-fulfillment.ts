@@ -197,7 +197,7 @@ export async function grantPurchasedCredits({
         type: "purchase",
         amount: credits,
         balanceAfter:
-          monthlyCredits + bonusCredits,
+          monthlyCredits + freeCredits + bonusCredits,
         purchaseType: "credits",
         checkoutSessionId,
         stripeEventId: eventId,

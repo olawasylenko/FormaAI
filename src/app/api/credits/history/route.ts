@@ -36,12 +36,16 @@ export async function GET(request: Request) {
           ? data.createdAt.toDate().toISOString()
           : null;
 
+      const type =
+        data.type === "refund"
+          ? "refund"
+          : data.type === "purchase"
+            ? "purchase"
+            : "generation";
+
       return {
         id: document.id,
-        type:
-          data.type === "refund"
-            ? "refund"
-            : "generation",
+        type,
         amount:
           typeof data.amount === "number"
             ? data.amount
@@ -49,6 +53,10 @@ export async function GET(request: Request) {
         monthlyUsed:
           typeof data.monthlyUsed === "number"
             ? data.monthlyUsed
+            : 0,
+        freeUsed:
+          typeof data.freeUsed === "number"
+            ? data.freeUsed
             : 0,
         bonusUsed:
           typeof data.bonusUsed === "number"
@@ -62,17 +70,13 @@ export async function GET(request: Request) {
           typeof metadata.shouldTexture === "boolean"
             ? metadata.shouldTexture
             : null,
-        operation:
-          typeof metadata.operation === "string"
-            ? metadata.operation
+        purchaseType:
+          typeof data.purchaseType === "string"
+            ? data.purchaseType
             : null,
         reason:
           typeof data.reason === "string"
             ? data.reason
-            : null,
-        relatedTaskId:
-          typeof data.relatedTaskId === "string"
-            ? data.relatedTaskId
             : null,
         createdAt,
       };
@@ -91,8 +95,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json(
       {
-        error:
-          "Nie udało się pobrać historii kredytów.",
+        error: "Nie udało się pobrać historii kredytów.",
       },
       { status: 500 }
     );

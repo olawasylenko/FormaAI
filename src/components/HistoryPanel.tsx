@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import {
   useCallback,
   useEffect,
@@ -11,6 +12,7 @@ import {
   Box,
   Clock3,
   Coins,
+  PackagePlus,
   Palette,
   RefreshCw,
   RotateCcw,
@@ -20,28 +22,28 @@ import { auth } from "@/lib/firebase";
 
 type HistoryItem = {
   id: string;
-  type: "generation" | "refund";
+  type: "generation" | "purchase" | "refund";
   amount: number;
   monthlyUsed: number;
+  freeUsed: number;
   bonusUsed: number;
   balanceAfter: number | null;
   shouldTexture: boolean | null;
-  operation: string | null;
+  purchaseType: string | null;
   reason: string | null;
-  relatedTaskId: string | null;
   createdAt: string | null;
 };
 
 type HistoryFilter =
   | "all"
   | "generation"
+  | "purchase"
   | "refund";
 
 export function HistoryPanel() {
   const [items, setItems] = useState<HistoryItem[]>([]);
   const [filter, setFilter] =
     useState<HistoryFilter>("all");
-
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] =
     useState(false);
@@ -158,8 +160,8 @@ export function HistoryPanel() {
           </h1>
 
           <p className="mt-3 max-w-2xl leading-7 text-muted">
-            Sprawdź wykorzystanie kredytów oraz
-            zwroty po nieudanym generowaniu.
+            Sprawdź wykorzystanie, zakupy oraz zwroty
+            kredytów.
           </p>
         </div>
 
@@ -188,11 +190,16 @@ export function HistoryPanel() {
 
         <FilterButton
           active={filter === "generation"}
-          onClick={() =>
-            setFilter("generation")
-          }
+          onClick={() => setFilter("generation")}
         >
-          Wykorzystane kredyty
+          Wykorzystane
+        </FilterButton>
+
+        <FilterButton
+          active={filter === "purchase"}
+          onClick={() => setFilter("purchase")}
+        >
+          Zakupy
         </FilterButton>
 
         <FilterButton
@@ -227,8 +234,8 @@ export function HistoryPanel() {
           </h2>
 
           <p className="mt-2 text-sm text-muted">
-            Historia pojawi się po pierwszym
-            wygenerowaniu modelu.
+            Operacje pojawią się po wykorzystaniu lub
+            zakupie kredytów.
           </p>
         </div>
       ) : (
@@ -255,7 +262,7 @@ function FilterButton({
 }: {
   active: boolean;
   onClick: () => void;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <button
@@ -280,21 +287,25 @@ function HistoryRow({
   last: boolean;
 }) {
   const isRefund = item.type === "refund";
+  const isPurchase = item.type === "purchase";
+  const isPositive = isRefund || isPurchase;
 
-  const title = isRefund
-    ? "Zwrot kredytów"
-    : item.shouldTexture
-      ? "Model 3D z teksturą"
-      : "Model 3D bez tekstury";
+  const title = isPurchase
+    ? `Zakup ${Math.abs(item.amount)} kredytów`
+    : isRefund
+      ? "Zwrot kredytów"
+      : item.shouldTexture
+        ? "Model 3D z teksturą"
+        : "Model 3D bez tekstury";
 
-  const description = isRefund
-    ? item.reason ||
-      "Kredyty zostały zwrócone na konto."
-    : item.shouldTexture
-      ? "Generowanie geometrii, kolorów i materiałów."
-      : "Generowanie geometrii modelu 3D.";
-
-  const dateLabel = formatDate(item.createdAt);
+  const description = isPurchase
+    ? "Jednorazowy pakiet dodatkowych kredytów został dodany do konta."
+    : isRefund
+      ? item.reason ||
+        "Kredyty zostały zwrócone na konto."
+      : item.shouldTexture
+        ? "Generowanie geometrii, kolorów i materiałów."
+        : "Generowanie geometrii modelu 3D.";
 
   return (
     <article
@@ -305,12 +316,14 @@ function HistoryRow({
       <div className="flex min-w-0 items-start gap-4">
         <div
           className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
-            isRefund
+            isPositive
               ? "bg-green-50 text-green-700"
               : "bg-primary-light text-primary"
           }`}
         >
-          {isRefund ? (
+          {isPurchase ? (
+            <PackagePlus className="h-5 w-5" />
+          ) : isRefund ? (
             <RotateCcw className="h-5 w-5" />
           ) : item.shouldTexture ? (
             <Palette className="h-5 w-5" />
@@ -330,7 +343,7 @@ function HistoryRow({
 
           <p className="mt-2 flex items-center gap-1.5 text-xs text-muted">
             <Clock3 className="h-3.5 w-3.5" />
-            {dateLabel}
+            {formatDate(item.createdAt)}
           </p>
         </div>
       </div>
@@ -351,7 +364,7 @@ function HistoryRow({
 
         <div
           className={`min-w-20 rounded-xl px-3 py-2 text-center font-bold ${
-            isRefund
+            isPositive
               ? "bg-green-50 text-green-700"
               : "bg-red-50 text-red-700"
           }`}
