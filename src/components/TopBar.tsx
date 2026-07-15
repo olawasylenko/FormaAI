@@ -6,6 +6,7 @@ import { onAuthStateChanged, signOut, type User } from "firebase/auth";
 import { ChevronDown, LogOut, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase";
+import { useCreditAccount } from "@/hooks/useCreditAccount";
 
 interface TopBarProps {
   onMenuToggle: () => void;
@@ -18,6 +19,11 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [profileOpen, setProfileOpen] = useState(false);
+
+  const {
+    summary: creditSummary,
+    loading: creditsLoading,
+  } = useCreditAccount();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -83,7 +89,10 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
 
       <div className="flex shrink-0 items-center gap-3">
         <div className="whitespace-nowrap rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-foreground shadow-sm">
-          🪙 245 kredytów
+          🪙{" "}
+          {creditsLoading
+            ? "..."
+            : `${creditSummary?.totalCredits ?? 0} kredytów`}
         </div>
 
         {loading ? (

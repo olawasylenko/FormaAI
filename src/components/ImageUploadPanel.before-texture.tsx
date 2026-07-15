@@ -12,8 +12,6 @@ interface ImageUploadPanelProps {
   onCreateModel?: () => void;
   onFileClear?: () => void;
   onFileSelect?: (file: File | null) => void;
-  generateWithTexture?: boolean;
-  onGenerateWithTextureChange?: (value: boolean) => void;
   isGenerating?: boolean;
   isComplete?: boolean;
   embedded?: boolean;
@@ -23,8 +21,6 @@ export function ImageUploadPanel({
   onCreateModel,
   onFileClear,
   onFileSelect,
-  generateWithTexture = false,
-  onGenerateWithTextureChange,
   isGenerating = false,
   isComplete = false,
   embedded = false,
@@ -205,45 +201,11 @@ export function ImageUploadPanel({
         </p>
       )}
 
-      <div className="mt-6 flex items-center justify-between gap-4 rounded-xl border border-border bg-background px-4 py-3">
-        <div>
-          <p className="text-sm font-semibold text-foreground">
-            Generuj z teksturą
-          </p>
-
-          <p className="mt-1 text-xs text-muted">
-            Kolory i materiały · dodatkowe 10 kredytów
-          </p>
-        </div>
-
-        <button
-          type="button"
-          role="switch"
-          aria-checked={generateWithTexture}
-          aria-label="Generuj z teksturą"
-          disabled={isGenerating}
-          onClick={() =>
-            onGenerateWithTextureChange?.(!generateWithTexture)
-          }
-          className={`relative h-8 w-14 shrink-0 rounded-full transition-colors ${
-            generateWithTexture ? "bg-primary" : "bg-[#c7ccba]"
-          } disabled:cursor-not-allowed disabled:opacity-60`}
-        >
-          <span
-            className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow-sm transition-transform ${
-              generateWithTexture
-                ? "translate-x-1"
-                : "-translate-x-6"
-            }`}
-          />
-        </button>
-      </div>
-
       <button
         type="button"
         onClick={handleCreateModel}
         disabled={isCreateDisabled}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:bg-primary/40 disabled:shadow-none"
+        className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:bg-primary/40 disabled:shadow-none"
       >
         <ImagePlus className="h-4 w-4" />
 

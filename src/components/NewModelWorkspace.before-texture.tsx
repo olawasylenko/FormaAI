@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { GenerationProgress } from "@/components/GenerationProgress";
 import { ImageUploadPanel } from "@/components/ImageUploadPanel";
 import { ModelPreviewPanel } from "@/components/ModelPreviewPanel";
-import { auth } from "@/lib/firebase";
 
 type GenerationPhase = "idle" | "generating" | "complete" | "failed";
 
@@ -39,7 +38,6 @@ function fileToDataUrl(file: File): Promise<string> {
 export function NewModelWorkspace() {
   const [phase, setPhase] = useState<GenerationPhase>("idle");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [generateWithTexture, setGenerateWithTexture] = useState(false);
 
   const [taskId, setTaskId] = useState("");
   const [status, setStatus] = useState("");
@@ -62,28 +60,15 @@ export function NewModelWorkspace() {
     setModelUrls(null);
 
     try {
-      const currentUser = auth.currentUser;
-
-      if (!currentUser) {
-        throw new Error(
-          "Musisz być zalogowana, aby wygenerować model."
-        );
-      }
-
-      const idToken =
-        await currentUser.getIdToken();
-
       const imageDataUrl = await fileToDataUrl(selectedFile);
 
       const response = await fetch("/api/meshy/generate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
         },
         body: JSON.stringify({
           imageDataUrl,
-          shouldTexture: generateWithTexture,
         }),
       });
 
@@ -100,10 +85,6 @@ export function NewModelWorkspace() {
       }
 
       setTaskId(data.taskId);
-
-      window.dispatchEvent(
-        new Event("formaai-credits-updated")
-      );
     } catch (caughtError) {
       setError(
         caughtError instanceof Error
@@ -122,26 +103,9 @@ export function NewModelWorkspace() {
 
     async function checkTask() {
       try {
-        const currentUser = auth.currentUser;
-
-        if (!currentUser) {
-          throw new Error(
-            "Sesja wygasła. Zaloguj się ponownie."
-          );
-        }
-
-        const idToken =
-          await currentUser.getIdToken();
-
-        const response = await fetch(
-          `/api/meshy/status/${taskId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${idToken}`,
-            },
-            cache: "no-store",
-          }
-        );
+        const response = await fetch(`/api/meshy/status/${taskId}`, {
+          cache: "no-store",
+        });
 
         const data = await response.json();
 
@@ -168,12 +132,6 @@ export function NewModelWorkspace() {
         }
 
         if (data.status === "FAILED") {
-          if (data.creditsRefunded) {
-            window.dispatchEvent(
-              new Event("formaai-credits-updated")
-            );
-          }
-
           setError(
             data.taskError || "Generowanie modelu nie powiodło się."
           );
@@ -238,8 +196,6 @@ export function NewModelWorkspace() {
           <ImageUploadPanel
             embedded
             onFileSelect={handleFileSelect}
-            generateWithTexture={generateWithTexture}
-            onGenerateWithTextureChange={setGenerateWithTexture}
             onCreateModel={handleCreateModel}
             onFileClear={handleFileClear}
             isGenerating={phase === "generating"}
@@ -258,9 +214,7 @@ export function NewModelWorkspace() {
 
           {phase === "complete" && (
             <div className="mt-6 rounded-xl bg-green-50 px-4 py-3 text-sm font-medium text-green-800">
-              {generateWithTexture
-                ? "Model 3D z teksturą został wygenerowany."
-                : "Model 3D został wygenerowany."}
+              Model 3D został wygenerowany.
             </div>
           )}
 
@@ -277,7 +231,6 @@ export function NewModelWorkspace() {
           thumbnailUrl={thumbnailUrl}
           modelUrls={modelUrls}
           taskId={taskId}
-          sourceImage={selectedFile}
         />
       </div>
     </div>

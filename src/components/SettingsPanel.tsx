@@ -276,7 +276,11 @@ export function SettingsPanel() {
               maxLength={40}
               value={displayName}
               onChange={(event) => setDisplayName(event.target.value)}
-              className="w-full rounded-xl border border-border bg-white px-4 py-3 text-foreground outline-none focus:border-primary dark:bg-[#1d2019]"
+              className="w-full rounded-xl border border-border bg-white px-4 py-3 outline-none focus:border-primary dark:bg-[#1d2019]"
+              style={{
+                color: darkMode ? "#ffffff" : "#686d62",
+                caretColor: darkMode ? "#ffffff" : "#686d62",
+              }}
             />
 
             <label className="mb-2 mt-5 block text-sm font-medium text-foreground">
@@ -335,10 +339,22 @@ export function SettingsPanel() {
 
         <div className="mt-7 flex items-center justify-between rounded-2xl border border-border bg-background p-5">
           <div>
-            <p className="font-semibold text-foreground">Tryb ciemny</p>
-            <p className="mt-1 text-sm text-muted">
-              Zmień kolorystykę całej aplikacji.
-            </p>
+            <p
+                    className="font-semibold"
+                    style={{
+                      color: darkMode ? "#ffffff" : "#686d62",
+                    }}
+                  >
+                    Tryb ciemny
+                  </p>
+            <p
+                    className="mt-1 text-sm"
+                    style={{
+                      color: darkMode ? "rgba(255,255,255,0.72)" : "#686d62",
+                    }}
+                  >
+                    Zmień kolorystykę całej aplikacji.
+                  </p>
           </div>
 
           <button
