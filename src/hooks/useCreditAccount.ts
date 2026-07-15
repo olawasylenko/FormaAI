@@ -11,6 +11,7 @@ import { auth } from "@/lib/firebase";
 export interface CreditAccountSummary {
   plan: "free" | "standard" | "pro";
   monthlyCredits: number;
+  freeCredits: number;
   bonusCredits: number;
   totalCredits: number;
   monthlyAllowance: number;

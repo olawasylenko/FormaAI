@@ -12,6 +12,7 @@ export const PLAN_MONTHLY_CREDITS: Record<PlanId, number> = {
 export interface CreditSummary {
   plan: PlanId;
   monthlyCredits: number;
+  freeCredits: number;
   bonusCredits: number;
   totalCredits: number;
   monthlyAllowance: number;
@@ -20,6 +21,7 @@ export interface CreditSummary {
 
 export interface ChargeResult {
   monthlyUsed: number;
+  freeUsed: number;
   bonusUsed: number;
   remainingCredits: number;
   transactionId: string;
@@ -91,6 +93,11 @@ function resolveAccountState(
     monthlyAllowance
   );
 
+  const freeCredits = numberOrDefault(
+    data?.freeCredits,
+    0
+  );
+
   const bonusCredits = numberOrDefault(
     data?.bonusCredits,
     0
@@ -101,21 +108,18 @@ function resolveAccountState(
       ? data.nextResetAt.toDate()
       : addOneMonth(now);
 
-  let resetApplied = false;
-
   if (nextResetAt.getTime() <= now.getTime()) {
     monthlyCredits = monthlyAllowance;
     nextResetAt = addOneMonth(now);
-    resetApplied = true;
   }
 
   return {
     plan,
     monthlyAllowance,
     monthlyCredits,
+    freeCredits,
     bonusCredits,
     nextResetAt,
-    resetApplied,
   };
 }
 
@@ -125,9 +129,12 @@ function createSummary(
   return {
     plan: state.plan,
     monthlyCredits: state.monthlyCredits,
+    freeCredits: state.freeCredits,
     bonusCredits: state.bonusCredits,
     totalCredits:
-      state.monthlyCredits + state.bonusCredits,
+      state.monthlyCredits +
+      state.freeCredits +
+      state.bonusCredits,
     monthlyAllowance: state.monthlyAllowance,
     nextResetAt: state.nextResetAt.toISOString(),
   };
@@ -156,10 +163,9 @@ export async function getCreditSummary(
         plan: state.plan,
         monthlyAllowance: state.monthlyAllowance,
         monthlyCredits: state.monthlyCredits,
+        freeCredits: state.freeCredits,
         bonusCredits: state.bonusCredits,
-        nextResetAt: Timestamp.fromDate(
-          state.nextResetAt
-        ),
+        nextResetAt: Timestamp.fromDate(state.nextResetAt),
         updatedAt: nowTimestamp,
         ...(snapshot.exists
           ? {}
@@ -200,7 +206,9 @@ export async function chargeCredits(
     );
 
     const availableCredits =
-      state.monthlyCredits + state.bonusCredits;
+      state.monthlyCredits +
+      state.freeCredits +
+      state.bonusCredits;
 
     if (availableCredits < cost) {
       throw new InsufficientCreditsError(
@@ -214,16 +222,26 @@ export async function chargeCredits(
       cost
     );
 
-    const bonusUsed = cost - monthlyUsed;
+    const afterMonthly = cost - monthlyUsed;
+
+    const freeUsed = Math.min(
+      state.freeCredits,
+      afterMonthly
+    );
+
+    const bonusUsed = afterMonthly - freeUsed;
 
     const monthlyCredits =
       state.monthlyCredits - monthlyUsed;
+
+    const freeCredits =
+      state.freeCredits - freeUsed;
 
     const bonusCredits =
       state.bonusCredits - bonusUsed;
 
     const remainingCredits =
-      monthlyCredits + bonusCredits;
+      monthlyCredits + freeCredits + bonusCredits;
 
     transaction.set(
       accountRef,
@@ -231,10 +249,9 @@ export async function chargeCredits(
         plan: state.plan,
         monthlyAllowance: state.monthlyAllowance,
         monthlyCredits,
+        freeCredits,
         bonusCredits,
-        nextResetAt: Timestamp.fromDate(
-          state.nextResetAt
-        ),
+        nextResetAt: Timestamp.fromDate(state.nextResetAt),
         updatedAt: nowTimestamp,
         ...(snapshot.exists
           ? {}
@@ -251,6 +268,7 @@ export async function chargeCredits(
       type: "generation",
       amount: -cost,
       monthlyUsed,
+      freeUsed,
       bonusUsed,
       balanceAfter: remainingCredits,
       metadata,
@@ -259,6 +277,7 @@ export async function chargeCredits(
 
     return {
       monthlyUsed,
+      freeUsed,
       bonusUsed,
       remainingCredits,
       transactionId: historyRef.id,
@@ -289,8 +308,23 @@ export async function refundCharge(
       now
     );
 
-    const monthlyCredits =
+    const proposedMonthlyCredits =
       state.monthlyCredits + charge.monthlyUsed;
+
+    const monthlyCredits = Math.min(
+      state.monthlyAllowance,
+      proposedMonthlyCredits
+    );
+
+    const monthlyOverflow = Math.max(
+      0,
+      proposedMonthlyCredits - state.monthlyAllowance
+    );
+
+    const freeCredits =
+      state.freeCredits +
+      charge.freeUsed +
+      monthlyOverflow;
 
     const bonusCredits =
       state.bonusCredits + charge.bonusUsed;
@@ -301,10 +335,9 @@ export async function refundCharge(
         plan: state.plan,
         monthlyAllowance: state.monthlyAllowance,
         monthlyCredits,
+        freeCredits,
         bonusCredits,
-        nextResetAt: Timestamp.fromDate(
-          state.nextResetAt
-        ),
+        nextResetAt: Timestamp.fromDate(state.nextResetAt),
         updatedAt: nowTimestamp,
       },
       {
@@ -315,11 +348,13 @@ export async function refundCharge(
     transaction.set(historyRef, {
       type: "refund",
       amount:
-        charge.monthlyUsed + charge.bonusUsed,
+        charge.monthlyUsed +
+        charge.freeUsed +
+        charge.bonusUsed,
       relatedTransactionId: charge.transactionId,
       reason,
       balanceAfter:
-        monthlyCredits + bonusCredits,
+        monthlyCredits + freeCredits + bonusCredits,
       createdAt: nowTimestamp,
     });
   });
@@ -342,6 +377,7 @@ export async function registerGenerationTask(
       status: "PENDING",
       cost,
       monthlyUsed: charge.monthlyUsed,
+      freeUsed: charge.freeUsed,
       bonusUsed: charge.bonusUsed,
       creditTransactionId: charge.transactionId,
       shouldTexture,
@@ -419,6 +455,11 @@ export async function refundFailedGenerationTask(
         0
       );
 
+      const freeUsed = numberOrDefault(
+        taskData?.freeUsed,
+        0
+      );
+
       const bonusUsed = numberOrDefault(
         taskData?.bonusUsed,
         0
@@ -434,8 +475,24 @@ export async function refundFailedGenerationTask(
         now
       );
 
-      const monthlyCredits =
+      const proposedMonthlyCredits =
         state.monthlyCredits + monthlyUsed;
+
+      const monthlyCredits = Math.min(
+        state.monthlyAllowance,
+        proposedMonthlyCredits
+      );
+
+      const monthlyOverflow = Math.max(
+        0,
+        proposedMonthlyCredits -
+          state.monthlyAllowance
+      );
+
+      const freeCredits =
+        state.freeCredits +
+        freeUsed +
+        monthlyOverflow;
 
       const bonusCredits =
         state.bonusCredits + bonusUsed;
@@ -446,10 +503,9 @@ export async function refundFailedGenerationTask(
           plan: state.plan,
           monthlyAllowance: state.monthlyAllowance,
           monthlyCredits,
+          freeCredits,
           bonusCredits,
-          nextResetAt: Timestamp.fromDate(
-            state.nextResetAt
-          ),
+          nextResetAt: Timestamp.fromDate(state.nextResetAt),
           updatedAt: nowTimestamp,
         },
         {
@@ -466,13 +522,14 @@ export async function refundFailedGenerationTask(
 
       transaction.set(historyRef, {
         type: "refund",
-        amount: monthlyUsed + bonusUsed,
+        amount:
+          monthlyUsed + freeUsed + bonusUsed,
         relatedTaskId: taskId,
         relatedTransactionId:
           taskData?.creditTransactionId ?? null,
         reason,
         balanceAfter:
-          monthlyCredits + bonusCredits,
+          monthlyCredits + freeCredits + bonusCredits,
         createdAt: nowTimestamp,
       });
 

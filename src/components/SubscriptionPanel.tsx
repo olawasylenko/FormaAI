@@ -1,15 +1,27 @@
 "use client";
 
+import { useState } from "react";
+
 import {
   Check,
   Coins,
   Crown,
   GraduationCap,
+  LoaderCircle,
   PackagePlus,
   Sparkles,
 } from "lucide-react";
 import { useCreditAccount } from "@/hooks/useCreditAccount";
+import { auth } from "@/lib/firebase";
 
+
+
+type CheckoutItemId =
+  | "standard"
+  | "pro"
+  | "credits_100"
+  | "credits_250"
+  | "credits_1000";
 
 const plans = [
   {
@@ -28,8 +40,7 @@ const plans = [
       "Biblioteka modeli",
       "Eksport GLB, FBX i OBJ",
     ],
-    current: true,
-  },
+   },
   {
     id: "standard",
     name: "Standard",
@@ -85,16 +96,83 @@ const creditPackages = [
   },
 ];
 
-function showPaymentsMessage() {
-  window.alert(
-    "Płatności zostaną podłączone w kolejnym etapie."
-  );
-}
 
 export function SubscriptionPanel() {
   const {
     summary: creditSummary,
   } = useCreditAccount();
+
+  const currentPlanId =
+    creditSummary?.plan ?? "free";
+
+  const currentPlan =
+    plans.find((plan) => plan.id === currentPlanId) ??
+    plans[0];
+
+  const [checkoutLoading, setCheckoutLoading] =
+    useState<CheckoutItemId | null>(null);
+
+  const [checkoutError, setCheckoutError] =
+    useState("");
+
+  async function startCheckout(
+    itemId: CheckoutItemId
+  ) {
+    const user = auth.currentUser;
+
+    if (!user) {
+      setCheckoutError(
+        "Musisz być zalogowana, aby wybrać plan."
+      );
+      return;
+    }
+
+    setCheckoutLoading(itemId);
+    setCheckoutError("");
+
+    try {
+      const idToken = await user.getIdToken();
+
+      const response = await fetch(
+        "/api/stripe/checkout",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({
+            itemId,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error ||
+            "Nie udało się otworzyć płatności."
+        );
+      }
+
+      if (!data?.url) {
+        throw new Error(
+          "Stripe nie zwrócił adresu płatności."
+        );
+      }
+
+      window.location.href = data.url;
+    } catch (caughtError) {
+      setCheckoutError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Nie udało się otworzyć płatności."
+      );
+
+      setCheckoutLoading(null);
+    }
+  }
 
   return (
     <div className="mx-auto max-w-6xl animate-fade-in">
@@ -114,6 +192,12 @@ export function SubscriptionPanel() {
         </p>
       </div>
 
+      {checkoutError && (
+        <div className="mt-5 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
+          {checkoutError}
+        </div>
+      )}
+
       <section className="mt-6 rounded-2xl border border-border bg-white p-5 shadow-sm sm:p-6">
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-center">
           <div>
@@ -123,7 +207,7 @@ export function SubscriptionPanel() {
 
             <div className="mt-2 flex flex-wrap items-center gap-3">
               <h2 className="text-2xl font-bold text-foreground">
-                Bezpłatny
+                {currentPlan.name}
               </h2>
 
               <span className="rounded-full bg-primary-light px-3 py-1 text-xs font-semibold text-accent">
@@ -132,14 +216,45 @@ export function SubscriptionPanel() {
             </div>
 
             <p className="mt-3 text-sm text-muted">
-              100 kredytów odnawianych co miesiąc
+              {creditSummary?.monthlyAllowance ??
+                currentPlan.credits}{" "}
+              kredytów odnawianych co miesiąc
             </p>
 
-            <div className="mt-4 rounded-xl border border-border bg-background px-4 py-3">
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-xl border border-border bg-background px-4 py-3">
+                <p className="text-xs text-muted">
+                  Pozostało z planu
+                </p>
+                <p className="mt-1 font-bold text-foreground">
+                  {creditSummary?.monthlyCredits ?? 0}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-border bg-background px-4 py-3">
+                <p className="text-xs text-muted">
+                  Zachowane bezpłatne
+                </p>
+                <p className="mt-1 font-bold text-foreground">
+                  {creditSummary?.freeCredits ?? 0}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-border bg-background px-4 py-3">
+                <p className="text-xs text-muted">
+                  Dokupione kredyty
+                </p>
+                <p className="mt-1 font-bold text-foreground">
+                  {creditSummary?.bonusCredits ?? 0}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-3 rounded-xl border border-border bg-background px-4 py-3">
               <p className="text-sm leading-6 text-muted">
-                Podczas generowania najpierw wykorzystywane są kredyty
-                dostępne w miesięcznym planie, a następnie dodatkowo
-                zakupione kredyty.
+                Najpierw wykorzystywane są kredyty płatnego planu,
+                następnie zachowane kredyty z wersji bezpłatnej,
+                a na końcu dodatkowo dokupione kredyty.
               </p>
             </div>
           </div>
@@ -170,6 +285,8 @@ export function SubscriptionPanel() {
         <div className="mt-5 grid gap-4 lg:grid-cols-3">
           {plans.map((plan) => {
             const Icon = plan.icon;
+            const isCurrent =
+              plan.id === currentPlanId;
 
             return (
               <article
@@ -235,19 +352,39 @@ export function SubscriptionPanel() {
 
                 <button
                   type="button"
-                  disabled={plan.current}
-                  onClick={showPaymentsMessage}
+                  disabled={
+                    isCurrent ||
+                    plan.id === "free" ||
+                    checkoutLoading !== null
+                  }
+                  onClick={() => {
+                    if (
+                      plan.id === "standard" ||
+                      plan.id === "pro"
+                    ) {
+                      void startCheckout(plan.id);
+                    }
+                  }}
                   className={`mt-5 w-full rounded-xl px-4 py-3 text-sm font-semibold transition ${
-                    plan.current
+                    isCurrent || plan.id === "free"
                       ? "cursor-default border border-border bg-background text-muted"
                       : plan.recommended
                         ? "bg-primary text-white hover:bg-accent"
                         : "border border-primary text-primary hover:bg-primary-light"
                   }`}
                 >
-                  {plan.current
-                    ? "Twój aktualny plan"
-                    : `Wybierz plan ${plan.name}`}
+                  {checkoutLoading === plan.id ? (
+                    <span className="inline-flex items-center justify-center gap-2">
+                      <LoaderCircle className="h-4 w-4 animate-spin" />
+                      Otwieranie płatności...
+                    </span>
+                  ) : isCurrent ? (
+                    "Twój aktualny plan"
+                  ) : plan.id === "free" ? (
+                    "Plan bezpłatny"
+                  ) : (
+                    `Wybierz plan ${plan.name}`
+                  )}
                 </button>
               </article>
             );
@@ -303,10 +440,23 @@ export function SubscriptionPanel() {
 
               <button
                 type="button"
-                onClick={showPaymentsMessage}
-                className="mt-4 w-full rounded-xl border border-primary px-4 py-2.5 text-sm font-semibold text-primary transition hover:bg-primary-light"
+                disabled={checkoutLoading !== null}
+                onClick={() =>
+                  void startCheckout(
+                    `credits_${creditPackage.credits}` as CheckoutItemId
+                  )
+                }
+                className="mt-4 w-full disabled:cursor-not-allowed disabled:opacity-60 rounded-xl border border-primary px-4 py-2.5 text-sm font-semibold text-primary transition hover:bg-primary-light"
               >
-                Kup kredyty
+                {checkoutLoading ===
+                `credits_${creditPackage.credits}` ? (
+                  <span className="inline-flex items-center justify-center gap-2">
+                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                    Otwieranie płatności...
+                  </span>
+                ) : (
+                  "Kup kredyty"
+                )}
               </button>
             </article>
           ))}
