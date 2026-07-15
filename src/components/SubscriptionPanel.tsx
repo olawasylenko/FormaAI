@@ -112,6 +112,9 @@ export function SubscriptionPanel() {
   const [checkoutLoading, setCheckoutLoading] =
     useState<CheckoutItemId | null>(null);
 
+  const [portalLoading, setPortalLoading] =
+    useState(false);
+
   const [checkoutError, setCheckoutError] =
     useState("");
 
@@ -174,6 +177,59 @@ export function SubscriptionPanel() {
     }
   }
 
+  async function openCustomerPortal() {
+    const user = auth.currentUser;
+
+    if (!user) {
+      setCheckoutError(
+        "Musisz być zalogowana, aby zarządzać subskrypcją."
+      );
+      return;
+    }
+
+    setPortalLoading(true);
+    setCheckoutError("");
+
+    try {
+      const idToken = await user.getIdToken();
+
+      const response = await fetch(
+        "/api/stripe/portal",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error ||
+            "Nie udało się otworzyć zarządzania subskrypcją."
+        );
+      }
+
+      if (!data?.url) {
+        throw new Error(
+          "Stripe nie zwrócił adresu Portalu klienta."
+        );
+      }
+
+      window.location.href = data.url;
+    } catch (caughtError) {
+      setCheckoutError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Nie udało się otworzyć zarządzania subskrypcją."
+      );
+
+      setPortalLoading(false);
+    }
+  }
+
   return (
     <div className="mx-auto max-w-6xl animate-fade-in">
       <div>
@@ -213,6 +269,29 @@ export function SubscriptionPanel() {
               <span className="rounded-full bg-primary-light px-3 py-1 text-xs font-semibold text-accent">
                 Aktywny
               </span>
+
+              {currentPlanId !== "free" && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    void openCustomerPortal()
+                  }
+                  disabled={
+                    portalLoading ||
+                    checkoutLoading !== null
+                  }
+                  className="rounded-full border border-primary px-4 py-2 text-xs font-semibold text-primary transition hover:bg-primary-light disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {portalLoading ? (
+                    <span className="inline-flex items-center gap-2">
+                      <LoaderCircle className="h-4 w-4 animate-spin" />
+                      Otwieranie...
+                    </span>
+                  ) : (
+                    "Zarządzaj subskrypcją"
+                  )}
+                </button>
+              )}
             </div>
 
             <p className="mt-3 text-sm text-muted">
