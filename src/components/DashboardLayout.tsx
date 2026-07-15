@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { LibraryPanel } from "@/components/LibraryPanel";
+import { HistoryPanel } from "@/components/HistoryPanel";
 import { NewModelWorkspace } from "@/components/NewModelWorkspace";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { SubscriptionPanel } from "@/components/SubscriptionPanel";
@@ -49,6 +50,10 @@ export function DashboardLayout() {
 
     if (activeTab === "subscription") {
       return <SubscriptionPanel />;
+    }
+
+    if (activeTab === "history") {
+      return <HistoryPanel />;
     }
 
     if (activeTab === "settings") {
